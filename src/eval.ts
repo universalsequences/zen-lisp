@@ -46,6 +46,7 @@ function evaluateList(list: Expression[], env: Environment): Message {
         return (obj as Record<string, Expression>)[func];
       }
     }
+
     if (func in env) {
       const fn = env[func];
       if (typeof fn === "function") {
@@ -138,7 +139,7 @@ function evaluateList(list: Expression[], env: Environment): Message {
         }
         const lengthArg = evaluateExpression(args[0], env);
         if (typeof lengthArg === "string" || Array.isArray(lengthArg)) {
-					return lengthArg.length;
+          return lengthArg.length;
         }
         throw new Error("Length operation requires a string or list argument");
       case "set":
