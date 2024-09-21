@@ -49,7 +49,6 @@ describe("Lisp-Object Evaluator", () => {
        newValue (+ (value $1) 10)
        condition (if (> (value $1) 50) "High" "Low")}
     `);
-    console.log("complex parsed=", ast)
 		const inputs = { "1": { value: 45, otherProp: "test" } };
 		expect(evaluate(ast, inputs)).toEqual({
 			value: 45,

@@ -1,4 +1,4 @@
-import type {Atom, Expression, List, ObjectLiteral, AST} from './types';
+import type { Atom, Expression, List, ObjectLiteral, AST } from "./types";
 
 function tokenize(input: string): string[] {
 	const tokens: string[] = [];
@@ -103,12 +103,26 @@ function parseObjectLiteral(tokens: string[]): ObjectLiteral {
 	return obj;
 }
 
+/*
 function parseAtom(token: string): Atom {
 	if (token === "true") return true;
 	if (token === "false") return false;
 	if (token === "null") return null;
 	if (/^-?\d+(\.\d+)?$/.test(token)) return Number(token);
 	return token;
+}
+*/
+
+function parseAtom(token: string): Atom {
+  if (token === "true") return true;
+  if (token === "false") return false;
+  if (token === "null") return null;
+  if (/^-?\d+(\.\d+)?$/.test(token)) return Number(token);
+  // Handle string literals
+  if (token.startsWith('"') && token.endsWith('"')) {
+    return token.slice(1, -1); // Remove surrounding quotes
+  }
+  return token;
 }
 
 // Export the parse function
