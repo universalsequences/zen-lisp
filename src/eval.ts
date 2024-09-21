@@ -126,22 +126,22 @@ function evaluateList(list: Expression[], env: Environment): Message {
 					: evaluateExpression(args[2], env);
 			case "list":
 				return args.map((arg) => evaluateExpression(arg, env));
-			case "first":
+			case "car":
 				if (args.length !== 1) {
 					throw new Error("First operation requires exactly one argument");
 				}
 				const firstArg = evaluateExpression(args[0], env);
 				if (!Array.isArray(firstArg)) {
-					throw new Error("First operation requires a list argument");
+					throw new Error("car operation requires a list argument");
 				}
 				return firstArg[0] ?? null;
-			case "rest":
+			case "cdr":
 				if (args.length !== 1) {
-					throw new Error("Rest operation requires exactly one argument");
+					throw new Error("cdr operation requires exactly one argument");
 				}
 				const restArg = evaluateExpression(args[0], env);
 				if (!Array.isArray(restArg)) {
-					throw new Error("Rest operation requires a list argument");
+					throw new Error("cdr operation requires a list argument");
 				}
 				return restArg.slice(1);
 			case "concat":

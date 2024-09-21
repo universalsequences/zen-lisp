@@ -40,7 +40,7 @@ describe("Lisp-Object Evaluator", () => {
 
 	test("should access input values", () => {
 		const ast = parse("(+ $a $b)");
-		const inputs = { "$a": 5, "$b": 7 };
+		const inputs = { $a: 5, $b: 7 };
 		expect(evaluate(ast, inputs)).toBe(12);
 	});
 
@@ -87,8 +87,8 @@ describe("Lisp-Object Evaluator", () => {
 
 	test("should handle list operations", () => {
 		expect(evaluate(parse("(list 1 2 3)"), {})).toEqual([1, 2, 3]);
-		expect(evaluate(parse("(first (list 1 2 3))"), {})).toBe(1);
-		expect(evaluate(parse("(rest (list 1 2 3))"), {})).toEqual([2, 3]);
+		expect(evaluate(parse("(car (list 1 2 3))"), {})).toBe(1);
+		expect(evaluate(parse("(cdr (list 1 2 3))"), {})).toEqual([2, 3]);
 		expect(evaluate(parse("(concat (list 1 2) (list 3 4))"), {})).toEqual([
 			1, 2, 3, 4,
 		]);
