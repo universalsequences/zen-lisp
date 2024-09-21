@@ -166,6 +166,7 @@ notes
 		const input = "(defun (x 4) (* x 4)) (list 1 4 5)";
 		const result = parse(input);
 		expect(result).toEqual([
+
 			{
 				type: "function",
 				params: ["x", 4],

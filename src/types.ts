@@ -1,6 +1,7 @@
 // Types for our AST
 export type Message = number | string | boolean | null | object | Message[];
 
+
 export type Atom = string | number | boolean | null;
 export type Expression = Atom | List | ObjectLiteral | FunctionDefinition;
 export type List = Expression[];
