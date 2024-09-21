@@ -9,4 +9,4 @@ export type ObjectLiteral = {
 	spread: Expression | null;
 	properties: { [key: string]: Expression };
 };
-export type AST = Expression;
+export type AST = Expression[];

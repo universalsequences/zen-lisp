@@ -37,7 +37,18 @@ function tokenize(input: string): string[] {
 }
 function parse(input: string): AST {
 	const tokens = tokenize(input);
-	return parseExpression(tokens);
+	console.log("tokens = ", tokens);
+	const expressions: Expression[] = [];
+	const expr = parseExpression(tokens);
+  expressions.push(expr);
+	console.log("after parse tokens=", tokens);
+
+	while (tokens.length > 0) {
+		expressions.push(parseExpression(tokens));
+	}
+	console.log("other expressions=", expressions);
+
+	return expressions;
 }
 
 function parseExpression(tokens: string[]): Expression {
@@ -65,6 +76,13 @@ function parseList(tokens: string[]): List {
 		list.push(parseExpression(tokens));
 	}
 	tokens.shift(); // Remove closing parenthesis
+	if (list[0] === "defun" && list.length === 3 && Array.isArray(list[1])) {
+		return {
+			type: "function",
+			params: list[1] as string[],
+			body: list[2],
+		};
+	}
 	return list;
 }
 
@@ -114,15 +132,15 @@ function parseAtom(token: string): Atom {
 */
 
 function parseAtom(token: string): Atom {
-  if (token === "true") return true;
-  if (token === "false") return false;
-  if (token === "null") return null;
-  if (/^-?\d+(\.\d+)?$/.test(token)) return Number(token);
-  // Handle string literals
-  if (token.startsWith('"') && token.endsWith('"')) {
-    return token.slice(1, -1); // Remove surrounding quotes
-  }
-  return token;
+	if (token === "true") return true;
+	if (token === "false") return false;
+	if (token === "null") return null;
+	if (/^-?\d+(\.\d+)?$/.test(token)) return Number(token);
+	// Handle string literals
+	if (token.startsWith('"') && token.endsWith('"')) {
+		return token.slice(1, -1); // Remove surrounding quotes
+	}
+	return token;
 }
 
 // Export the parse function
