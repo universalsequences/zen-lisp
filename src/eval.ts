@@ -38,11 +38,20 @@ function evaluateList(list: Expression[], env: Environment): Message {
   if (list.length === 0) {
     return null;
   }
-  const [func, ...args] = list;
+  let [_func, ...args] = list;
+  const func = evaluateExpression(_func, env);
+  console.log("func = ", func);
+
+  if (typeof func === "function") {
+    const evaluatedArgs = args.map((arg) => evaluateExpression(arg, env));
+    const fn = func;
+    return fn(env)(...evaluatedArgs);
+  }
   if (typeof func === "string") {
     if (func in env) {
       const fn = env[func];
       if (typeof fn === "function") {
+        console.log("wutf");
         const evaluatedArgs = args.map((arg) => evaluateExpression(arg, env));
         return fn(env)(...evaluatedArgs);
       }
@@ -52,10 +61,48 @@ function evaluateList(list: Expression[], env: Environment): Message {
       const fn = env[func];
       if (typeof fn === "function") {
         const evaluatedArgs = args.map((arg) => evaluateExpression(arg, env));
+        console.log("uh");
         return fn(env)(...evaluatedArgs);
       }
     }
     switch (func) {
+      case "lambda":
+        if (args.length !== 2 || !Array.isArray(args[0])) {
+          throw new Error("Lambda expression must have parameter list and body");
+        }
+        const params = args[0] as string[];
+        const body = args[1];
+        console.log("returning function!");
+        return (callScope: Environment) =>
+          (...args: Message[]) => {
+            const localEnv = Object.create({ ...env, ...callScope });
+
+            params.slice(0).forEach((param, index) => {
+              localEnv[param] = args[index];
+            });
+            console.log("evaluating...", body, localEnv);
+            return evaluateExpression(body, localEnv);
+          };
+      case "map":
+        if (args.length !== 2) {
+          throw new Error("Map requires exactly two arguments: a function and a list");
+        }
+        const mapFunc = evaluateExpression(args[0], env);
+        const mapList = evaluateExpression(args[1], env);
+
+        if (typeof mapFunc !== "function") {
+          throw new Error("First argument to map must be a function");
+        }
+        if (!Array.isArray(mapList)) {
+          throw new Error("Second argument to map must be a list");
+        }
+
+        return mapList.map((item, index) => {
+          if (typeof mapFunc === "function") {
+            return mapFunc(env)(item, index);
+          }
+          throw new Error("Unexpected error: mapFunc is not a function");
+        });
       case "+":
         return args.reduce((sum, arg) => (sum as number) + Number(evaluateExpression(arg, env)), 0);
       case "-":
@@ -120,6 +167,13 @@ function evaluateList(list: Expression[], env: Environment): Message {
           throw new Error("car operation requires a list argument");
         }
         return firstArg[0] ?? null;
+      case "get":
+        if (args.length !== 2) {
+          throw new Error("get operation requires exactly two arguments");
+        }
+        const a = evaluateExpression(args[0], env);
+        const b = evaluateExpression(args[1], env);
+        return a[b];
       case "cdr":
         if (args.length !== 1) {
           throw new Error("cdr operation requires exactly one argument");
@@ -129,6 +183,26 @@ function evaluateList(list: Expression[], env: Environment): Message {
           throw new Error("cdr operation requires a list argument");
         }
         return restArg.slice(1);
+      case "cons":
+        if (args.length !== 2) {
+          throw new Error("cons operation requires exactly 2 arguments");
+        }
+        const _a = evaluateExpression(args[0], env);
+        const _b = evaluateExpression(args[1], env);
+        if (Array.isArray(_b)) {
+          return [_a, ..._b];
+        } else {
+          return [_a, _b];
+        }
+      case "nil":
+        if (args.length !== 1) {
+          throw new Error("nul operation requires exactly 1 arguments");
+        }
+        const _nil = evaluateExpression(args[0], env);
+        if (Array.isArray(_nil)) {
+          return _nil.length === 0;
+        }
+        return _nil === null || Number.isNaN(_nil) || _nil === undefined;
       case "concat":
         return args.reduce((result, arg) => {
           const evaluated = evaluateExpression(arg, env);

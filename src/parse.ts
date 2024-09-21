@@ -119,16 +119,6 @@ function parseObjectLiteral(tokens: string[]): ObjectLiteral {
   return obj;
 }
 
-/*
-function parseAtom(token: string): Atom {
-	if (token === "true") return true;
-	if (token === "false") return false;
-	if (token === "null") return null;
-	if (/^-?\d+(\.\d+)?$/.test(token)) return Number(token);
-	return token;
-}
-*/
-
 function parseAtom(token: string): Atom {
   if (token === "true") return true;
   if (token === "false") return false;
