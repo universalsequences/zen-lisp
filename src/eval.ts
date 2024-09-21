@@ -16,18 +16,22 @@ function evaluate(expressions: Expression[], env: Environment): Message {
 }
 
 function evaluateExpression(expr: Expression, env: Environment): Message {
-	if (Array.isArray(expr)) {
-		return evaluateList(expr, env);
-	} else if (typeof expr === "object" && expr !== null) {
-		if ("type" in expr) {
-			if (expr.type === "object") {
-				return evaluateObject(expr, env);
-			} else if (expr.type === "function") {
-				return defineFunctionInEnv(expr, env);
+	const e = () => {
+		if (Array.isArray(expr)) {
+			return evaluateList(expr, env);
+		} else if (typeof expr === "object" && expr !== null) {
+			if ("type" in expr) {
+				if (expr.type === "object") {
+					return evaluateObject(expr, env);
+				} else if (expr.type === "function") {
+					return defineFunctionInEnv(expr, env);
+				}
 			}
 		}
-	}
-	return evaluateAtom(expr, env);
+		return evaluateAtom(expr, env);
+	};
+	const r = e();
+	return r;
 }
 
 function evaluateList(list: Expression[], env: Environment): Message {
@@ -42,35 +46,38 @@ function evaluateList(list: Expression[], env: Environment): Message {
 				return (obj as Record<string, Expression>)[func];
 			}
 		}
-		if (func in env && typeof env[func] === "function") {
-			const evaluatedArgs = args.map((arg) => evaluateExpression(arg, env));
-			return (env[func] as Function)(...evaluatedArgs);
+		if (func in env) {
+			const fn = env[func];
+			if (typeof fn === "function") {
+				const evaluatedArgs = args.map((arg) => evaluateExpression(arg, env));
+				return fn(...evaluatedArgs);
+			}
 		}
 		switch (func) {
 			case "+":
 				return args.reduce(
-					(sum, arg) => sum + Number(evaluateExpression(arg, env)),
+					(sum, arg) => (sum as number) + Number(evaluateExpression(arg, env)),
 					0,
 				);
 			case "-":
 				if (args.length === 1) {
 					return -Number(evaluateExpression(args[0], env));
 				}
-				return args.reduce((diff, arg, index) =>
-					index === 0
-						? Number(evaluateExpression(arg, env))
-						: diff - Number(evaluateExpression(arg, env)),
+				return Number(
+					(evaluateExpression(args[0], env) as number) -
+						(evaluateExpression(args[1], env) as number),
 				);
 			case "*":
 				return args.reduce(
-					(product, arg) => product * Number(evaluateExpression(arg, env)),
+					(product, arg) =>
+						(product as number) * Number(evaluateExpression(arg, env)),
 					1,
 				);
 			case "/":
 				return args.reduce((quotient, arg, index) =>
 					index === 0
 						? Number(evaluateExpression(arg, env))
-						: quotient / Number(evaluateExpression(arg, env)),
+						: (quotient as number) / Number(evaluateExpression(arg, env)),
 				);
 			case "%":
 				if (args.length !== 2) {
@@ -121,7 +128,8 @@ function evaluateList(list: Expression[], env: Environment): Message {
 				if (args.length !== 3) {
 					throw new Error("If statement requires exactly three arguments");
 				}
-				return evaluateExpression(args[0], env)
+				const cond = evaluateExpression(args[0], env);
+				return cond
 					? evaluateExpression(args[1], env)
 					: evaluateExpression(args[2], env);
 			case "list":
@@ -160,9 +168,17 @@ function evaluateList(list: Expression[], env: Environment): Message {
 					return lengthArg.length;
 				}
 				throw new Error("Length operation requires a string or list argument");
+			case "set":
+				if (args.length !== 2) {
+					throw new Error("set operation requires exactly two arguments");
+				}
+				if (typeof args[0] !== "string") {
+					throw new Error("set operation requires string for variable name");
+				}
+				env[args[0]] = evaluateExpression(args[1], env);
+				return env[args[0]];
 			case "print":
 				const printResult = args.map((arg) => evaluateExpression(arg, env));
-				console.log(...printResult);
 				return printResult[printResult.length - 1] ?? null;
 			default:
 				throw new Error(`Unknown function: ${func}`);
@@ -207,8 +223,9 @@ function defineFunctionInEnv(
 ): Message {
 	const { params, body } = funcDef;
 	env[params[0]] = (...args: Message[]) => {
-		const localEnv = { ...env };
-		params.forEach((param, index) => {
+		const localEnv = Object.create(env);
+
+		params.slice(1).forEach((param, index) => {
 			localEnv[param] = args[index];
 		});
 		return evaluateExpression(body, localEnv);
