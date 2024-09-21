@@ -47,8 +47,8 @@ describe("Lisp-Object Evaluator", () => {
   test("should handle complex nested expressions", () => {
     const ast = parse(`
       {... $1
-       newValue (+ (value $1) 10)
-       condition (if (> (value $1) 50) "High" "Low")}
+       newValue (+ value 10)
+       condition (if (> value 50) "High" "Low")}
     `);
     const inputs = { $1: { value: 45, otherProp: "test" } };
     expect(evaluate(ast, inputs)).toEqual({
@@ -58,7 +58,6 @@ describe("Lisp-Object Evaluator", () => {
       condition: "Low",
     });
   });
-
   test("should throw error for unknown functions", () => {
     const ast = parse("(unknown 1 2)");
     expect(() => evaluate(ast, {})).toThrow("Unknown function: unknown");
@@ -84,7 +83,6 @@ describe("Lisp-Object Evaluator", () => {
     expect(evaluate(parse("(or false true)"), {})).toBe(true);
     expect(evaluate(parse("(not false)"), {})).toBe(true);
   });
-
   test("should handle list operations", () => {
     expect(evaluate(parse("(list 1 2 3)"), {})).toEqual([1, 2, 3]);
     expect(evaluate(parse("(car (list 1 2 3))"), {})).toBe(1);

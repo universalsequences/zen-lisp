@@ -40,10 +40,11 @@ function evaluateList(list: Expression[], env: Environment): Message {
   }
   const [func, ...args] = list;
   if (typeof func === "string") {
-    if (args.length === 1 && func !== "not" && !env.hasOwnProperty(func)) {
-      const obj = evaluateExpression(args[0], env);
-      if (typeof obj === "object" && obj !== null && obj.hasOwnProperty(func)) {
-        return (obj as Record<string, Expression>)[func];
+    if (func in env) {
+      const fn = env[func];
+      if (typeof fn === "function") {
+        const evaluatedArgs = args.map((arg) => evaluateExpression(arg, env));
+        return fn(env)(...evaluatedArgs);
       }
     }
 
@@ -51,7 +52,7 @@ function evaluateList(list: Expression[], env: Environment): Message {
       const fn = env[func];
       if (typeof fn === "function") {
         const evaluatedArgs = args.map((arg) => evaluateExpression(arg, env));
-        return fn(...evaluatedArgs);
+        return fn(env)(...evaluatedArgs);
       }
     }
     switch (func) {
@@ -163,6 +164,7 @@ function evaluateList(list: Expression[], env: Environment): Message {
 
 function evaluateObject(obj: ObjectLiteral, env: Environment): Message {
   const result: Record<string, Message> = {};
+  const _env = { ...env };
   if (obj.spread) {
     const spreadValue = evaluateExpression(obj.spread, env);
     if (typeof spreadValue === "object" && spreadValue !== null) {
@@ -170,9 +172,15 @@ function evaluateObject(obj: ObjectLiteral, env: Environment): Message {
     } else {
       throw new Error("Spread value must be an object");
     }
+    for (const key in env[obj.spread as string] as Record<string, Message>) {
+      _env[key] = evaluateExpression(
+        key,
+        evaluateExpression(obj.spread, _env) as Record<string, Message>,
+      ); // (env[obj.spread as string] as Record<string, Message>)[key];
+    }
   }
   for (const [key, value] of Object.entries(obj.properties)) {
-    result[key] = evaluateExpression(value, env);
+    result[key] = evaluateExpression(value, _env);
   }
   return result;
 }
@@ -193,14 +201,16 @@ function evaluateAtom(atom: Atom, env: Environment): Message {
 
 function defineFunctionInEnv(funcDef: FunctionDefinition, env: Environment): Message {
   const { params, body } = funcDef;
-  env[params[0]] = (...args: Message[]) => {
-    const localEnv = Object.create(env);
+  env[params[0]] =
+    (callScope: Environment) =>
+    (...args: Message[]) => {
+      const localEnv = Object.create({ ...env, ...callScope });
 
-    params.slice(1).forEach((param, index) => {
-      localEnv[param] = args[index];
-    });
-    return evaluateExpression(body, localEnv);
-  };
+      params.slice(1).forEach((param, index) => {
+        localEnv[param] = args[index];
+      });
+      return evaluateExpression(body, localEnv);
+    };
   return null;
 }
 export { evaluate };
