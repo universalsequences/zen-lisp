@@ -1,6 +1,7 @@
 import { expect, test, describe } from "bun:test";
 import { parse } from "../src/parse";
 import { evaluate } from "../src/eval";
+import { Environment } from "../src/types";
 
 describe("Lisp-Object Evaluator", () => {
 	test("should evaluate simple arithmetic", () => {
@@ -33,13 +34,13 @@ describe("Lisp-Object Evaluator", () => {
 
 	test("should handle object spread", () => {
 		const ast = parse("{... $obj x 20}");
-		const inputs = { obj: { x: 10, y: 15 } };
+		const inputs = { $obj: { x: 10, y: 15 } };
 		expect(evaluate(ast, inputs)).toEqual({ x: 20, y: 15 });
 	});
 
 	test("should access input values", () => {
 		const ast = parse("(+ $a $b)");
-		const inputs = { a: 5, b: 7 };
+		const inputs = { "$a": 5, "$b": 7 };
 		expect(evaluate(ast, inputs)).toBe(12);
 	});
 
@@ -49,7 +50,7 @@ describe("Lisp-Object Evaluator", () => {
        newValue (+ (value $1) 10)
        condition (if (> (value $1) 50) "High" "Low")}
     `);
-		const inputs = { "1": { value: 45, otherProp: "test" } };
+		const inputs = { $1: { value: 45, otherProp: "test" } };
 		expect(evaluate(ast, inputs)).toEqual({
 			value: 45,
 			otherProp: "test",
@@ -60,9 +61,7 @@ describe("Lisp-Object Evaluator", () => {
 
 	test("should throw error for unknown functions", () => {
 		const ast = parse("(unknown 1 2)");
-		expect(() => evaluate(ast, {})).toThrow(
-			"Unknown function or property: unknown",
-		);
+		expect(() => evaluate(ast, {})).toThrow("Unknown function: unknown");
 	});
 
 	test("should throw error for unknown inputs", () => {
@@ -73,5 +72,60 @@ describe("Lisp-Object Evaluator", () => {
 	test("should throw error for invalid spread", () => {
 		const ast = parse("{... 5}");
 		expect(() => evaluate(ast, {})).toThrow("Spread value must be an object");
+	});
+
+	test("should handle modulo operation", () => {
+		const ast = parse("(% 10 3)");
+		expect(evaluate(ast, {})).toBe(1);
+	});
+
+	test("should handle logical operations", () => {
+		expect(evaluate(parse("(and true false)"), {})).toBe(false);
+		expect(evaluate(parse("(or false true)"), {})).toBe(true);
+		expect(evaluate(parse("(not false)"), {})).toBe(true);
+	});
+
+	test("should handle list operations", () => {
+		expect(evaluate(parse("(list 1 2 3)"), {})).toEqual([1, 2, 3]);
+		expect(evaluate(parse("(first (list 1 2 3))"), {})).toBe(1);
+		expect(evaluate(parse("(rest (list 1 2 3))"), {})).toEqual([2, 3]);
+		expect(evaluate(parse("(concat (list 1 2) (list 3 4))"), {})).toEqual([
+			1, 2, 3, 4,
+		]);
+		expect(evaluate(parse("(length (list 1 2 3))"), {})).toBe(3);
+	});
+
+	test("should handle string length", () => {
+		expect(evaluate(parse('(length "hello")'), {})).toBe(5);
+	});
+
+	test("should handle function definitions and calls", () => {
+		const ast = parse(`
+      (defun (x) (* x 4))
+      {... $1 "field" (x 4) "other" (x 8)}
+    `);
+		const inputs: Environment = { $1: { value: 10 } };
+		expect(evaluate(ast, inputs)).toEqual({
+			value: 10,
+			field: 16,
+			other: 32,
+		});
+	});
+
+	test("should handle nested function calls", () => {
+		const ast = parse(`
+      (defun (x) (* x 2))
+      (defun (y) (+ (x y) 5))
+      (y 10)
+    `);
+		expect(evaluate(ast, {})).toBe(25);
+	});
+
+	test("should handle functions with multiple parameters", () => {
+		const ast = parse(`
+      (defun (x y) (+ (* x 2) y))
+      (x 5 3)
+    `);
+		expect(evaluate(ast, {})).toBe(13);
 	});
 });

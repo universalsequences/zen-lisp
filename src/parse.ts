@@ -1,4 +1,11 @@
-import type { Atom, Expression, List, ObjectLiteral, AST } from "./types";
+import type {
+	Atom,
+	Expression,
+	List,
+	ObjectLiteral,
+	AST,
+	FunctionDefinition,
+} from "./types";
 
 function tokenize(input: string): string[] {
 	const tokens: string[] = [];
@@ -37,16 +44,13 @@ function tokenize(input: string): string[] {
 }
 function parse(input: string): AST {
 	const tokens = tokenize(input);
-	console.log("tokens = ", tokens);
 	const expressions: Expression[] = [];
 	const expr = parseExpression(tokens);
-  expressions.push(expr);
-	console.log("after parse tokens=", tokens);
+	expressions.push(expr);
 
 	while (tokens.length > 0) {
 		expressions.push(parseExpression(tokens));
 	}
-	console.log("other expressions=", expressions);
 
 	return expressions;
 }
@@ -67,7 +71,7 @@ function parseExpression(tokens: string[]): Expression {
 	}
 }
 
-function parseList(tokens: string[]): List {
+function parseList(tokens: string[]): List | FunctionDefinition {
 	const list: Expression[] = [];
 	while (tokens[0] !== ")") {
 		if (tokens.length === 0) {
